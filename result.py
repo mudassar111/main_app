@@ -9,6 +9,7 @@ from sympy.solvers.diophantine.diophantine import descent, length
 from sympy.solvers.solvers import solve
 from db_fxns import create_table,add_data,view_all_data,view_unique_data,get_id,edit_well_id,delete_id
 from db_fxns_aq import create_table_aq,view_all_data_aq,add_data_aq,view_unique_data_aq,get_id_aq,edit_aq_id, delete_id_aq
+from db_fxns_aq import view_all_data_clg
 import base64
 import pathlib
 import matplotlib.pyplot as plt
@@ -26,6 +27,7 @@ def app():
 	#st.subheader("View Stored Values")
 	results_aq = view_all_data_aq()
 	results = view_all_data()
+	results_clg = view_all_data_clg()
 
 	#st.sidebar.markdown('---')
 	#st.sidebar.markdown(""" **Stored Values:** """)
