@@ -11,6 +11,7 @@ import time
 #Database Functions
 from db_fxns import create_table,add_data,view_all_data,view_unique_data,get_id,edit_well_id,delete_id
 from db_fxns_aq import create_table_aq,view_all_data_aq,add_data_aq,view_unique_data_aq,get_id_aq,edit_aq_id, delete_id_aq
+from db_fxns_aq import create_table_clg,view_all_data_clg,add_data_clg,view_unique_data_clg,get_id_clg,edit_id_clg,delete_id_clg
 
 #-------------------------------------------------------------------------------NavBar-Ends------------------------------------------------------------------------------------------------------------
 def app():
@@ -232,22 +233,76 @@ def app():
     
     
 
+    #menu_clg = ["Create", "Read", "Update", "Delete"]
+    #choice_clg = st.sidebar.selectbox("Please Select Action", menu_clg)
+
 
 
     st.markdown("""---""")
     st.sidebar.markdown("---")
     st.sidebar.title("Clogging Factor:")
-    if st.sidebar.checkbox("Calculate Increased Distance (Clogging)"):
-        d_w = st.sidebar.number_input("Distance of Well from River:")
-        d_w_m_1 = st.sidebar.number_input("Dist. between Well and Monit. Well 1(X-Axis):")
-        d_w_m_2 = st.sidebar.number_input("Dist. between Well and Monit. Well 2(X-Axis):")
-        d_w_m_3 = st.sidebar.number_input("Dist. between Well and Monit. Well 1(Y-Axis):")
-        d_w_m_4 = st.sidebar.number_input("Dist. between Well and Monit. Well 2(Y-Axis):")
-        sp1_sp2 = st.sidebar.number_input("Water Head Decrease Ratio:")
-        if st.sidebar.button("Calculate"):
-            st.success("The increased distance due to colmation layer between well and river boundary is: 20 m")
-            st.info("Put this distance in well location in X-Direction!!")
+    if st.sidebar.checkbox("Clogging Factor"):
+        menu_clg = ["Create", "Read", "Update", "Delete"]
+        choice_clg = st.sidebar.selectbox("Please Select Action", menu_clg)
+        create_table_clg()
+        if choice_clg == "Create":
+            clg_id = st.sidebar.number_input("Colmation Layer ID:")
+            kd = st.sidebar.number_input("Hydraulic Condutivity of Layer (Kd):")
+            dc = st.sidebar.number_input("Thickness of Layer (dc):")
+        
+            if st.sidebar.button("Add Values."):
+                add_data_clg(clg_id, kd, dc)
+                st.sidebar.success("Colmation Layer {} Added".format(clg_id))
+
+        elif choice_clg == "Read":
+            results_clg = view_all_data_clg()
+            with st.sidebar.expander("View All Data"):
+                df_clg = pd.DataFrame(results_clg, columns=['Layer ID', 'K Value', 'D Value'])
+                st.dataframe(df_clg)
+            #st.sidebar.info("In Progress")
+
+        elif choice_clg == "Update":
+            results_clg = view_all_data_clg()
+            with st.sidebar.expander("Current Data"):
+                df_clg = pd.DataFrame(results_clg, columns=['Layer ID', 'K Value', 'D Value'])
+                st.dataframe(df_clg)
+
+            list_of_data_clg = [i[0] for i in view_unique_data_clg()]
+            selected_data_clg = st.sidebar.selectbox("Layer ID to Edit", list_of_data_clg)
+            
+            selected_result_clg = get_id_clg(selected_data_clg)
+
+            if selected_result_clg:
+                clg_id = selected_result_clg[0][0]
+                kd = selected_result_clg[0][1]
+                dc = selected_result_clg[0][2]
+                
+
+                new_clg_id = st.sidebar.number_input("Colmation Layer ID:", clg_id)
+                new_kd = st.sidebar.number_input("Hydraulic Condutivity of Layer (Kd):", kd)
+                new_dc = st.sidebar.number_input("Thickness of Layer (dc):", dc)
+
+                if st.sidebar.button("Update Values."):
+                    edit_id_clg(new_clg_id,new_kd,new_dc, clg_id, kd, dc)
+                    st.sidebar.success("Successfully Updated :: {} To :: {}".format(clg_id, new_clg_id))
 
 
-    
+            results4 = view_all_data_clg()
+            with st.sidebar.expander("Updated Data"):
+                df4 = pd.DataFrame(results4, columns=['Layer ID', 'K Value', 'D Value'])
+                st.dataframe(df4)
+
+
+        elif choice_clg == "Delete":
+            results_clg = view_all_data_clg()
+            with st.sidebar.expander("Current Data"):
+                df_clg = pd.DataFrame(results_clg, columns=['Layer ID', 'K Value', 'D Value'])
+                st.dataframe(df_clg)
+            list_of_data_clg = [i[0] for i in view_unique_data_clg()]
+            selected_data_clg = st.sidebar.selectbox("Layer ID to Edit", list_of_data_clg)
+            st.sidebar.warning("The Layer ID {} will be Deleted".format(selected_data_clg))
+            if st.sidebar.button("Delete Values."):
+                delete_id_clg(selected_data_clg)
+                st.sidebar.success("Layer ID is Deleted Successfully")
+
     st.sidebar.markdown("---")
