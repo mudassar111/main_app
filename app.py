@@ -4,7 +4,7 @@ import home, theory, result, help_page, data_col # import your app modules here
 
 app = MultiApp()
 st.set_page_config(
-        page_title="Calulations",
+        page_title="Riverbank Filtration Online Tool",
         layout="wide",
 
         )
