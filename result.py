@@ -49,6 +49,10 @@ def app():
 	#menu = ["Wells", "Rivers", "No Flow"]
 	#choice = st.sidebar.selectbox("Please Select Boundary Condition", menu)
 	aem_model = model_pro.Model(k = results_aq[0][4], H = results_aq[0][1], h0 = results_aq[0][5], Qo_x=results_aq[0][2])
+	if len(results_clg) == 0:
+		st.info("No Clogging Factor is Added!")
+	else:
+		aem_model.calc_clogging(results_clg[0][1], results_clg[0][2])
 	if len(results) == 0:
 		st.error("Please add atleast one Well")
 
@@ -150,7 +154,7 @@ def app():
 		st.sidebar.download_button(label="Download \u03C8 in CSV", data=csv_psi, mime="csv")
 
 
-
+		
 
 
 
