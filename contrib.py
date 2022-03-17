@@ -20,13 +20,14 @@ class river_length():
             yw = elem.y
             d = np.abs(self.model.river_a*xw + self.model.river_b*yw + self.model.river_c) / np.sqrt(self.model.river_a**2 + self.model.river_b**2)
             Qx = -self.model.Qo_x
+            p = self.model.p
 
             ex_st_points = Q /(np.pi*d*Qx)
 
             if ex_st_points <= 1:
                 st.write("There is no staganation Point")
             else:
-                equation = sympy.Eq(-d**2 + d*Q/(np.pi*Qx)-y**2,0)
+                equation = sympy.Eq(-(d+p)**2 + (d+p)*Q/(np.pi*Qx)-y**2,0)
                 sols = sympy.solveset(equation, y, domain = sympy.S.Reals)
                 sol_el = []
                 for i in sols:
@@ -57,31 +58,32 @@ class river_length():
         d = np.abs(self.model.river_a*xw + self.model.river_b*yw + self.model.river_c)/np.sqrt(self.model.river_a**2 + self.model.river_b**2)
         Qx = self.model.Qo_x
         rw = elem.rw
+        p = self.model.p
 
 
-        def qx(x, y, Q, Qx, xw, yw, d):
+        def qx(x, y, Q, Qx, xw, yw, d, p):
             head = self.model.calc_head(x,y)
             if head > self.model.H:
                 z = self.model.H
             else:
                 z = head
 
-            return -1*(-Qx + Q/(4*np.pi)*((2*(x-xw)/((x-xw)**2+(y-yw)**2))-(2*(x-(xw-2*d)))/((x-(xw-2*d))**2+(y-yw)**2)))/z
+            return -1*(-Qx + Q/(4*np.pi)*((2*(x-xw)/((x-xw)**2+(y-yw)**2))-(2*(x-(xw-2*d-2*p)))/((x-(xw-2*d-2*p))**2+(y-yw)**2)))/z
 
-        def qy(x, y, Q, Qx, xw, yw, d):
+        def qy(x, y, Q, Qx, xw, yw, d, p):
             head = self.model.calc_head(x,y)
             if head > self.model.H:
                 z = self.model.H
             else:
                 z = head
 
-            return -1*(Q/(4*np.pi)*((2*(y-yw)/((x-xw)**2+(y-yw)**2))-(2*(y-yw))/((x-(xw-2*d))**2+(y-yw)**2)))/z
+            return -1*(Q/(4*np.pi)*((2*(y-yw)/((x-xw)**2+(y-yw)**2))-(2*(y-yw))/((x-(xw-2*d-2*p))**2+(y-yw)**2)))/z
             
-        def equation_x(x_a, psi, y_2, Q, Qx, xw, yw, d):
-            return -Qx*y_2 + (Q/(2*np.pi))*(np.arctan2((y_2-yw), (x_a-xw)) - np.arctan2((y_2-yw), (x_a-(xw-2*d))))-psi
+        def equation_x(x_a, psi, y_2, Q, Qx, xw, yw, d, p):
+            return -Qx*y_2 + (Q/(2*np.pi))*(np.arctan2((y_2-yw), (x_a-xw)) - np.arctan2((y_2-yw), (x_a-(xw-2*d-2*p))))-psi
         
-        def equation_y(y_a, psi, x_2, Q, Qx, xw, yw, d):
-            return -Qx*y_a + (Q/(2*np.pi))*(np.arctan2((y_a-yw), (x_2-xw)) - np.arctan2((y_a-yw), (x_2-(xw-2*d))))-psi
+        def equation_y(y_a, psi, x_2, Q, Qx, xw, yw, d, p):
+            return -Qx*y_a + (Q/(2*np.pi))*(np.arctan2((y_a-yw), (x_2-xw)) - np.arctan2((y_a-yw), (x_2-(xw-2*d-2*p))))-psi
 
         for x,y in zip(xs, ys):
 
@@ -99,8 +101,8 @@ class river_length():
 
             while np.sqrt((x1-xw)**2+(y1-yw)**2) > 5*rw:
                 dista1 = np.sqrt((x1-xw)**2+(y1-yw)**2)
-                qx1 = qx(x1, y1, Q, Qx, xw, yw, d)
-                qy1 = qy(x1, y1, Q, Qx, xw, yw, d)
+                qx1 = qx(x1, y1, Q, Qx, xw, yw, d, p)
+                qy1 = qy(x1, y1, Q, Qx, xw, yw, d, p)
                 vx = qx1/ne
                 vy = qy1/ne
                 v_i = np.sqrt(vx**2+vy**2)
@@ -112,19 +114,19 @@ class river_length():
                     break
 
                 if vx > vy:
-                    sols_y = fsolve(equation_y, y_2, (psi, x_2, Q, Qx, xw, yw, d), xtol=1e-4)
+                    sols_y = fsolve(equation_y, y_2, (psi, x_2, Q, Qx, xw, yw, d, p), xtol=1e-4)
                     sol_el_y = sols_y[0]
                     y_2 = sol_el_y
 
                 else:
-                    sols = fsolve(equation_x, x_2, (psi, y_2, Q, Qx, xw, yw, d), xtol=1e-4)
+                    sols = fsolve(equation_x, x_2, (psi, y_2, Q, Qx, xw, yw, d, p), xtol=1e-4)
                     sol_el_x = sols[0]
                     x_2 = sol_el_x
 
                 dist = np.sqrt((x_2-x1)**2 + (y_2-y1)**2)
 
-                qx2 = qx(x_2, y_2, Q, Qx, xw, yw, d)
-                qy2 = qy(x_2, y_2, Q, Qx, xw, yw, d)
+                qx2 = qx(x_2, y_2, Q, Qx, xw, yw, d, p)
+                qy2 = qy(x_2, y_2, Q, Qx, xw, yw, d, p)
                 vx2 = qx2/ne
                 vy2 = qy2/ne
 
@@ -151,8 +153,8 @@ class river_length():
 
         qs = []
         for x,y in zip(xs,ys):
-            qx1 = qx(x, y, Q, Qx, xw, yw, d)
-            qy1 = qy(x, y, Q, Qx, xw, yw, d)
+            qx1 = qx(x, y, Q, Qx, xw, yw, d, p)
+            qy1 = qy(x, y, Q, Qx, xw, yw, d, p)
             q = np.sqrt(qx1**2+qy1**2)
             qs.append(q)
 
