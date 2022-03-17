@@ -246,9 +246,9 @@ def app():
         choice_clg = st.sidebar.selectbox("Please Select Action", menu_clg)
         create_table_clg()
         if choice_clg == "Create":
-            clg_id = st.sidebar.number_input("Colmation Layer ID:")
-            kd = st.sidebar.number_input("Hydraulic Condutivity of Layer (Kd):")
-            dc = st.sidebar.number_input("Thickness of Layer (dc):")
+            clg_id = st.sidebar.number_input("Colmation Layer ID [n]:", 1.,1.,1.)
+            kd = st.sidebar.number_input("Hydraulic Condutivity of Layer [m/day]:", 0., 1000., 0.)
+            dc = st.sidebar.number_input("Thickness of Layer [m]:", 0., 1000.,0.)
         
             if st.sidebar.button("Add Values."):
                 add_data_clg(clg_id, kd, dc)
@@ -268,7 +268,7 @@ def app():
                 st.dataframe(df_clg)
 
             list_of_data_clg = [i[0] for i in view_unique_data_clg()]
-            selected_data_clg = st.sidebar.selectbox("Layer ID to Edit", list_of_data_clg)
+            selected_data_clg = st.sidebar.selectbox("Layer ID to Edit:", list_of_data_clg)
             
             selected_result_clg = get_id_clg(selected_data_clg)
 
@@ -278,9 +278,9 @@ def app():
                 dc = selected_result_clg[0][2]
                 
 
-                new_clg_id = st.sidebar.number_input("Colmation Layer ID:", clg_id)
-                new_kd = st.sidebar.number_input("Hydraulic Condutivity of Layer (Kd):", kd)
-                new_dc = st.sidebar.number_input("Thickness of Layer (dc):", dc)
+                new_clg_id = st.sidebar.number_input("Colmation Layer ID [n]:", 1.,1., float(clg_id))
+                new_kd = st.sidebar.number_input("Hydraulic Condutivity of Layer [m/day]:", 0., 1000., float(kd))
+                new_dc = st.sidebar.number_input("Thickness of Layer [m]:", 0., 1000., float(dc))
 
                 if st.sidebar.button("Update Values."):
                     edit_id_clg(new_clg_id,new_kd,new_dc, clg_id, kd, dc)
