@@ -5,7 +5,7 @@ from scipy.optimize import fsolve
 import itertools
 
 
-class river_length():
+class river_length(): #Class to calculate river capture length, location and capture fraction.
     def __init__(self, model):
         self.model = model
     
@@ -24,21 +24,21 @@ class river_length():
 
             ex_st_points = Q /(np.pi*d*Qx)
 
-            if ex_st_points <= 1:
+            if ex_st_points <= 1: #Checking existing stagnation points
                 st.write("There is no staganation Point")
             else:
-                equation = sympy.Eq(-(d+p)**2 + (d+p)*Q/(np.pi*Qx)-y**2,0)
+                equation = sympy.Eq(-(d+p)**2 + (d+p)*Q/(np.pi*Qx)-y**2,0) #Equation assumes the well is at y=0, it is corrected later
                 sols = sympy.solveset(equation, y, domain = sympy.S.Reals)
                 sol_el = []
-                for i in sols:
-                    sol_el.append(np.float64(i+yw))
-                length = np.abs(sol_el[0]-sol_el[1])
-                Q_river = self.model.calc_psi(0, sol_el[0]) - self.model.calc_psi(0, sol_el[1]) + Q
-                contrib = Q_river/Q
+                for i in sols: #Putting solution in a list
+                    sol_el.append(np.float64(i+yw)) #Correcting the solution to the well y position
+                length = np.abs(sol_el[0]-sol_el[1]) #River capture length
+                Q_river = self.model.calc_psi(0, sol_el[0]) - self.model.calc_psi(0, sol_el[1]) + Q #Bank filtrate portion
+                contrib = Q_river/Q #Bank filtrate ratio
 
-                return length, sol_el, contrib
+                return length, sol_el, contrib #Return 3 solution
 
-    def time_travel(self, ne, delta_s = 0.1, calculate_trajectory=False, min_dist_est=0.1):
+    def time_travel(self, ne, delta_s = 0.1, calculate_trajectory=False, min_dist_est=0.1): #Function to calulcate time of travel
 
         length, sol_el, contrib = self.solve_river_length()
 
@@ -50,7 +50,7 @@ class river_length():
             traj_array = []
 
 
-
+        #Intial paramters to model
         elem = self.model.aem_elements[0]
         Q = elem.Q
         xw = elem.x
@@ -61,32 +61,40 @@ class river_length():
         p = self.model.p
 
 
+        #general potential qx, qy formulae 
         def qx(x, y, Q, Qx, xw, yw, d, p):
             head = self.model.calc_head(x,y)
+            #Checking if confined or unconfined
             if head > self.model.H:
                 z = self.model.H
             else:
                 z = head
-
+            #Specific discharge calculation
             return -1*(-Qx + Q/(4*np.pi)*((2*(x-xw)/((x-xw)**2+(y-yw)**2))-(2*(x-(xw-2*d-2*p)))/((x-(xw-2*d-2*p))**2+(y-yw)**2)))/z
 
         def qy(x, y, Q, Qx, xw, yw, d, p):
             head = self.model.calc_head(x,y)
+            #Checking if confined or unconfined
             if head > self.model.H:
                 z = self.model.H
             else:
                 z = head
-
+            #Specific discharge calculation
             return -1*(Q/(4*np.pi)*((2*(y-yw)/((x-xw)**2+(y-yw)**2))-(2*(y-yw))/((x-(xw-2*d-2*p))**2+(y-yw)**2)))/z
             
+        #Formulae for correction of the trajectory (Stream function)
+
         def equation_x(x_a, psi, y_2, Q, Qx, xw, yw, d, p):
             return -Qx*y_2 + (Q/(2*np.pi))*(np.arctan2((y_2-yw), (x_a-xw)) - np.arctan2((y_2-yw), (x_a-(xw-2*d-2*p))))-psi
         
         def equation_y(y_a, psi, x_2, Q, Qx, xw, yw, d, p):
             return -Qx*y_a + (Q/(2*np.pi))*(np.arctan2((y_a-yw), (x_2-xw)) - np.arctan2((y_a-yw), (x_2-(xw-2*d-2*p))))-psi
 
-        for x,y in zip(xs, ys):
+        #Calculation of streamline and time of travel
 
+        for x,y in zip(xs, ys):
+            
+            #Starting the trajectory arrays if necessary
             if calculate_trajectory:
                 xss = []
                 xss.append(x)
@@ -100,6 +108,7 @@ class river_length():
             breakin_dists = []
 
             while np.sqrt((x1-xw)**2+(y1-yw)**2) > 5*rw:
+                #1.Calculating velocity
                 dista1 = np.sqrt((x1-xw)**2+(y1-yw)**2)
                 qx1 = qx(x1, y1, Q, Qx, xw, yw, d, p)
                 qy1 = qy(x1, y1, Q, Qx, xw, yw, d, p)
@@ -107,12 +116,14 @@ class river_length():
                 vy = qy1/ne
                 v_i = np.sqrt(vx**2+vy**2)
 
+                #2.Estimating second point
                 y_2 = np.float(y1 + delta_s*vy/v_i)
                 x_2 = np.float(x1 + delta_s*vx/v_i)
 
                 if np.sqrt((x_2-xw)**2+(y_2-yw)**2) < rw:
                     break
 
+                #Correcting the point location based on the psi value
                 if vx > vy:
                     sols_y = fsolve(equation_y, y_2, (psi, x_2, Q, Qx, xw, yw, d, p), xtol=1e-4)
                     sol_el_y = sols_y[0]
@@ -123,6 +134,7 @@ class river_length():
                     sol_el_x = sols[0]
                     x_2 = sol_el_x
 
+                #Calculating distance
                 dist = np.sqrt((x_2-x1)**2 + (y_2-y1)**2)
 
                 qx2 = qx(x_2, y_2, Q, Qx, xw, yw, d, p)
@@ -130,13 +142,16 @@ class river_length():
                 vx2 = qx2/ne
                 vy2 = qy2/ne
 
+                #Calculating mean velocity
                 vxm = np.mean([vx, vx2])
                 vym = np.mean([vy, vy2])
 
                 vm = np.sqrt(vxm**2+vym**2)
 
+                #Calculating time of travel of particle and appending the array
                 t_arr.append(dist/vm)
 
+                #Looping
                 x1 = x_2
                 y1 = y_2
 
@@ -144,13 +159,17 @@ class river_length():
                     xss.append(x1)
                     yss.append(y1)
 
+            #Adding time of travel estimate
             tt.append(np.sum(np.array(t_arr)))
 
+            #Saving the particle trajectory in a numpy array
             if calculate_trajectory:
                 traj_arr = np.vstack((np.array(xss), np.array(yss)))
                 traj_array.append(traj_arr)
 
+        #Return the average travel time
 
+        #Calculate qxs (Specific Discharge)
         qs = []
         for x,y in zip(xs,ys):
             qx1 = qx(x, y, Q, Qx, xw, yw, d, p)
@@ -161,8 +180,9 @@ class river_length():
         qs = np.array(qs)
         tt = np.array(tt)
 
+        #Calculate the average travel time
         avgtt = np.sum(qs*tt)/np.sum(qs)
-
+        #Calculate min travel time
         mintt = np.min(tt)
 
         if calculate_trajectory:
@@ -174,70 +194,7 @@ class river_length():
 
 
 
-        '''def qx(x,y):
-            return -1*(-Qx + Q/(4*np.pi)*((2*(x-xw)/((x-xw)**2 + (y-yw)**2)) - (2*(x-(xw-2*d)))/((x-(xw-2*d))**2 + (y-yw)**2))) / self.model.calc_head(x,y)
-        def qy(x,y):
-            return -1*(Q/(4*np.pi)*((2*(y-yw)/((x-xw)**2 + (y-yw)**2))-(2*(y-yw))/((x-(xw-2*d))**2+(y-yw)**2))) / self.model.calc_head(x,y)
-
-
-        for x,y in zip(xs, ys):
-
-            dis_arr = []
-            v_arr = []
-
-            x1 = x
-            y1 = y
-            while np.sqrt((x1-xw)**2+(y1-yw)**2) > 1.5*delta_s:
-                dista1 = np.sqrt((x1-xw)**2+(y1-yw)**2)
-                qx1 = qx(x1, y1)
-                qy1 = qy(x1, y1)
-                vx = qx1/ne
-                vy = qy1/ne
-                v_i = np.sqrt(vx**2 + vy**2)
-                v_arr.append(v_i)
-
-                x_2 = np.float(x1 + delta_s*vx/v_i)
-                y_2 = np.float(y1 + delta_s*vy/v_i)
-
-                psi = self.model.calc_psi(x,y)
-
-                def equation_x(x_a):
-                    return Qx*y_2 + (Q/(2*np.pi))*(np.arctan2((y_2-yw), (x_a-xw))-np.arctan2((y_2-yw), (x_a-(xw-2*d)))) - psi
-                sols = fsolve(equation_x, x_2)
-                sol_el_x = sols[0]
-
-                def equation_y(y_a):
-                    return Qx*y_a + (Q/(2*np.pi)) * (np.arctan2((y_a-yw), (x_2-xw))- np.arctan2((y_a-yw), (x_2-(xw-2*d)))) - psi
-                sols_y = fsolve(equation_y, y_2)
-                sol_el_y = sols_y[0]
-
-
-                pos_locs_y = [(sol_el_x, y_2)]
-                pos_locs_x = [(x_2, sol_el_y)]
-                pos_locs = pos_locs_x + pos_locs_y
-
-                dista = 1e9
-
-                for xp, yp in pos_locs:
-                    dist = np.sqrt((xp-x1)**2+(yp-y1)**2)
-                    if dist < dista:
-                        x_2 = xp
-                        y_2 = yp
-                        dista = dist
-
-                dis_arr.append(dista)
-
-                x1 = x_2
-                y1 = y_2
-                dista_2 = np.sqrt((x1-xw)**2+(y1-yw)**2)
-                if dista_2 > dista1:
-                    break
-
-            dis_arr = np.array(dis_arr)
-            v_arr = np.array(v_arr)
-            tt.append(np.sum(dis_arr/v_arr))
-
-        return tt'''
+       
 
 
 
